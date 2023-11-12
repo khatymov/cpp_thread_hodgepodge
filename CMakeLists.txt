@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
-project(my_project LANGUAGES CXX)
+project(threads_read_write LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 include(${CMAKE_CURRENT_LIST_DIR}/thread/read_thread/read_thread.cmake)
 
@@ -13,6 +13,7 @@ add_executable(${PROJECT_NAME}
                 ${READ_THREAD}
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
+target_link_libraries(${PROJECT_NAME} -pthread)
+#target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
 
 #add_subdirectory(tests)
