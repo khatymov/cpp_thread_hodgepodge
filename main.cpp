@@ -4,13 +4,11 @@
 
 #include <iostream>
 
-#include "move.h"
-#include "my_class.h"
+#include "read_thread.h"
 
 using namespace std;
 
 int main()
 {
-
     return 0;
 }
