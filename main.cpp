@@ -11,7 +11,6 @@
 #include "read_thread.h"
 #include <fstream>
 
-using namespace std;
 
 //TODO: change to boost `options`
 auto parse_arguments(int argc, char* argv[]) {
@@ -20,29 +19,12 @@ auto parse_arguments(int argc, char* argv[]) {
     {
         throw std::runtime_error("Wrong number of arguments");
     }
-    cout << "source_file_path: " << args[0] << "\ntarget_file_path: " << args[1] << endl;
+    std::cout << "source_file_path: " << args[0] << "\ntarget_file_path: " << args[1] << std::endl;
     return make_tuple(args[0], args[1]);
 }
 
 namespace fs = std::filesystem;
 
-void read_file(const string_view& source_file)
-{
-    ifstream read_file(source_file.data());
-
-    if (!read_file.is_open())
-    {
-        throw std::runtime_error("Can't open source.txt file");
-    }
-
-    // Read the file content line by line
-    std::string line;
-    while (std::getline(read_file, line)) {
-        std::cout << line << std::endl;
-    }
-
-    read_file.close();
-}
 
 #include <condition_variable>
 #include <mutex>
@@ -51,48 +33,80 @@ void read_file(const string_view& source_file)
 #include <cassert>
 #include <atomic>
 
-mutex _mutex;
-condition_variable cv;
+std::mutex _mutex;
+std::condition_variable cv;
 
 std::atomic_bool is_file_closed{false};
 
 class StringBuffer {
 public:
-    void read(const string& val) {
-        unique_lock<mutex> lock(_mutex);
-        while (!q.empty()) {
+    void read(const std::string& val) {
+        std::unique_lock<std::mutex> lock(_mutex);
+        while (!_strings_queue.empty()) {
             cv.wait(lock);
         }
-        q.push(val);
-        print_q("Reader");
+        std::cout << "Here 4" << std::endl;
+        _strings_queue.push(val);
+        std::cout << "Here 6" << std::endl;
         cv.notify_all();
+        std::cout << "Here 7" << std::endl;
     }
 
-    auto write() {
-        unique_lock<mutex> lock(_mutex);
-        while (q.empty()) {
+    bool have_write_lines()
+    {
+        std::unique_lock<std::mutex> lock(_mutex);
+        std::cout << "Here 9" << std::endl;
+        while (_strings_queue.empty())
+        {
+            std::cout << "Here 10" << std::endl;
             cv.wait(lock);
+            if (is_file_closed)
+            {
+                return false;
+            }
         }
-        const string val = q.front();
-        print_q("Consumer");
-        q.pop();
+
+        return true;
+    }
+
+    std::string get_line()
+    {
+        const std::string val = _strings_queue.front();
+        _strings_queue.pop();
+        std::cout << "Here 12" << std::endl;
         cv.notify_all();
+        std::cout << "Here 13" << std::endl;
         return val;
     }
 
-    void print_q(string str)
+    auto write()
     {
-        cout << "Last elem of queue " << str << " is: " << q.front() << endl;
-    }
+        std::cout << "Here 8" << std::endl;
+        std::unique_lock<std::mutex> lock(_mutex);
+        std::cout << "Here 9" << std::endl;
+        while (_strings_queue.empty())
+        {
+            std::cout << "Here 10" << std::endl;
+            cv.wait(lock);
+            if (is_file_closed) return std::string{};
+        }
 
+        std::cout << "Here 11" << std::endl;
+        const std::string val = _strings_queue.front();
+        _strings_queue.pop();
+        std::cout << "Here 12" << std::endl;
+        cv.notify_all();
+        std::cout << "Here 13" << std::endl;
+        return val;
+    }
 private:
-    queue<string> q;
+    std::queue<std::string> _strings_queue;
 };
 
 
-void reader(StringBuffer* string_buffer, const string_view& source_file) {
+void reader(StringBuffer* string_buffer, const std::string_view& source_file) {
 
-    ifstream read_file(source_file.data());
+    std::ifstream read_file(source_file.data());
 
     if (!read_file.is_open())
     {
@@ -101,17 +115,22 @@ void reader(StringBuffer* string_buffer, const string_view& source_file) {
 
     // Read the file content line by line
     std::string line;
+
     while (std::getline(read_file, line)) {
         string_buffer->read(line);
     }
-
+    std::cout << "Here 14" << std::endl;
     read_file.close();
 
     if (!read_file.is_open())
+    {
+        std::cout << "Here 15" << std::endl;
         is_file_closed = true;
+        cv.notify_one();
+    }
 }
 
-void writer(StringBuffer *string_buffer, const string_view& dist_file) {
+void writer(StringBuffer *string_buffer, const std::string_view& dist_file) {
 
     //TODO: verify that ostream creates a file
     // Open the file for writing
@@ -121,12 +140,14 @@ void writer(StringBuffer *string_buffer, const string_view& dist_file) {
         throw std::runtime_error("Can't open destination file");
     }
 
-    while (!is_file_closed)
-        write_file << string_buffer->write() << '\n';
+    while (string_buffer->have_write_lines())
+    {
+        write_file << string_buffer->get_line() << '\n';
+    }
 
     write_file.close();
 
-    assert(std::system("diff -q ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
+    assert(std::system("diff ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
 }
 
 int main(int argc, char* argv[])
@@ -142,7 +163,7 @@ int main(int argc, char* argv[])
         }
         if (fs::is_empty(source_path))
         {
-            cout << "Source file is empty. Nothing to copy." << endl;
+            std::cout << "Source file is empty. Nothing to copy." << std::endl;
             return 0;
         }
 
