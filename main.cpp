@@ -32,7 +32,7 @@ void read_file(const string_view& source_file)
 
     if (!read_file.is_open())
     {
-        throw std::runtime_error("Can't open source file");
+        throw std::runtime_error("Can't open source.txt file");
     }
 
     // Read the file content line by line
@@ -47,9 +47,14 @@ void read_file(const string_view& source_file)
 #include <condition_variable>
 #include <mutex>
 #include <queue>
+#include <cstdlib>
+#include <cassert>
+#include <atomic>
 
 mutex _mutex;
 condition_variable cv;
+
+std::atomic_bool is_file_closed{false};
 
 class StringBuffer {
 public:
@@ -59,8 +64,8 @@ public:
             cv.wait(lock);
         }
         q.push(val);
+        print_q("Reader");
         cv.notify_all();
-        cout << "Reader reads: " <<  val << endl;
     }
 
     auto write() {
@@ -69,11 +74,17 @@ public:
             cv.wait(lock);
         }
         const string val = q.front();
+        print_q("Consumer");
         q.pop();
         cv.notify_all();
-        cout << "Writer writes " <<  val << endl;
         return val;
     }
+
+    void print_q(string str)
+    {
+        cout << "Last elem of queue " << str << " is: " << q.front() << endl;
+    }
+
 private:
     queue<string> q;
 };
@@ -85,17 +96,19 @@ void reader(StringBuffer* string_buffer, const string_view& source_file) {
 
     if (!read_file.is_open())
     {
-        throw std::runtime_error("Can't open source file");
+        throw std::runtime_error("Can't open source.txt file");
     }
 
     // Read the file content line by line
     std::string line;
     while (std::getline(read_file, line)) {
-        std::cout << line << std::endl;
         string_buffer->read(line);
     }
 
     read_file.close();
+
+    if (!read_file.is_open())
+        is_file_closed = true;
 }
 
 void writer(StringBuffer *string_buffer, const string_view& dist_file) {
@@ -108,9 +121,12 @@ void writer(StringBuffer *string_buffer, const string_view& dist_file) {
         throw std::runtime_error("Can't open destination file");
     }
 
-    write_file << string_buffer->write();
+    while (!is_file_closed)
+        write_file << string_buffer->write() << '\n';
 
     write_file.close();
+
+    assert(std::system("diff -q ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
 }
 
 int main(int argc, char* argv[])
