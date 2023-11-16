@@ -2,12 +2,12 @@
  * \brief Entry point.
  */
 
+#include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <iterator>
-#include <vector>
 #include <tuple>
-#include <filesystem>
-#include <cstdlib>
+#include <vector>
 
 #include "copy_thread.h"
 
@@ -26,8 +26,8 @@ namespace fs = std::filesystem;
 
 int main(int argc, char* argv[])
 {
-    std::string_view source_path;
-    std::string_view target_path;
+    std::string_view source_path{};
+    std::string_view target_path{};
 
     try {
         std::tie(source_path, target_path) = parse_arguments(argc, argv);
@@ -41,8 +41,8 @@ int main(int argc, char* argv[])
             return 0;
         }
 
-    } catch (const std::exception &x) {
-        std::cerr << "threads_read_write: " << x.what() << '\n';
+    } catch (const std::exception &exception) {
+        std::cerr << "threads_read_write: " << exception.what() << '\n';
         std::cerr << "usage: threads_read_write source_file_path target_file_path\n";
         return EXIT_FAILURE;
     }
