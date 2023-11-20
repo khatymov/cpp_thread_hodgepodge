@@ -11,8 +11,8 @@ std::condition_variable buffer_condition_var;
 std::atomic_bool is_file_closed{false};
 
 CopyThread::CopyThread(const std::string_view& source_path, const std::string_view& target_path)
-    :_read_file(source_path.data())
-    ,_target_file(target_path.data())
+    : _source_path(source_path.data())
+    , _target_path(target_path.data())
     ,_rw_buf(new ReadWriteBuffer<std::string>())
 {}
 
@@ -24,20 +24,34 @@ void CopyThread::run()
 
 void CopyThread::_read()
 {
-    if (!_read_file.is_open())
+    std::ifstream read_file(_source_path);
+
+    if (!read_file.is_open())
     {
-        throw std::runtime_error("Can't open source.txt file");
+        // We failed to open the file: throw an exception
+        const std::string error = "Unable to open file " + _source_path;
+        throw std::invalid_argument(error);
     }
 
     // Read the file content line by line
     std::string line;
 
-    while (std::getline(_read_file, line)) {
+    //Read string one by one until the end
+    while (std::getline(read_file, line)) {
         _rw_buf->read(line);
     }
-    _read_file.close();
 
-    if (!_read_file.is_open())
+    if (!read_file.eof()) {
+        // We did not reach the end-of-file.
+        // This means that some error occurred while reading the file.
+        // Throw an exception.
+        const std::string error = "Unable to read file " + _source_path;
+        throw std::runtime_error(error);
+    }
+
+    read_file.close();
+
+    if (!read_file.is_open())
     {
         is_file_closed = true;
         buffer_condition_var.notify_one();
@@ -46,19 +60,22 @@ void CopyThread::_read()
 
 void CopyThread::_write()
 {
+    std::ofstream target_file(_target_path);
     //TODO: verify that ostream creates a file
     // Open the file for writing
-    if (!_target_file.is_open())
+    if (!target_file.is_open())
     {
-        throw std::runtime_error("Can't open target file");
+        // We failed to open the file: throw an exception
+        const std::string error = "Unable to open file " + _target_path;
+        throw std::invalid_argument(error);
     }
 
     while (_rw_buf->have_write_lines())
     {
-        _target_file << _rw_buf->get_line() << '\n';
+        target_file << _rw_buf->get_line() << '\n';
     }
 
-    _target_file.close();
+    target_file.close();
 
     assert(std::system("diff ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
 }
