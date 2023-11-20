@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(threads_read_write LANGUAGES CXX)
+project(cpp_course LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -16,5 +16,3 @@ add_executable(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} -pthread)
 
 #target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra)
-
-#add_subdirectory(tests)
