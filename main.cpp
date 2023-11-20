@@ -2,11 +2,9 @@
  * \brief Entry point.
  */
 
-#include <cstdlib>
 #include <filesystem>
 #include <iostream>
-#include <iterator>
-#include <tuple>
+#include <span>
 
 #include "copy_thread.h"
 
@@ -20,8 +18,12 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    std::string_view source_path{argv[1]};
-    std::string_view target_path{argv[2]};
+    // https://en.cppreference.com/w/cpp/container/span
+    // warning: 'do not use pointer arithmetic'
+    auto args = std::span(argv, size_t(argc));
+
+    const std::string_view source_path{args[1]};
+    const std::string_view target_path{args[2]};
 
     if (!fs::exists(source_path.data()))
     {
@@ -29,11 +31,13 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    CopyThread copy_thread(source_path, target_path);
+    // initialize CopyInThreads class object
+    CopyInThreads copy_in_threads(source_path, target_path);
 
     try
     {
-        copy_thread.run();
+        //execute copy in threads
+        copy_in_threads.run();
     } catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;

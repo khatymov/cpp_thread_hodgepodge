@@ -1,5 +1,5 @@
 /*! \file copy_thread.cpp
- * \brief CopyThread class implementation.
+ * \brief CopyInThreads class implementation.
  */
 
 #include <cassert>
@@ -10,21 +10,21 @@ std::mutex buffer_mutex;
 std::condition_variable buffer_condition_var;
 std::atomic_bool is_file_closed{false};
 
-CopyThread::CopyThread(const std::string_view& source_path, const std::string_view& target_path)
+CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::string_view& target_path)
     : _source_path(source_path.data())
     , _target_path(target_path.data())
     ,_rw_buf(new ReadWriteBuffer<std::string>())
 {}
 
-void CopyThread::run()
+void CopyInThreads::run()
 {
-    _read_thread = std::jthread(&CopyThread::_read, this);
-    _write_thread = std::jthread(&CopyThread::_write, this);
+    _read_thread = std::jthread(&CopyInThreads::_read, this);
+    _write_thread = std::jthread(&CopyInThreads::_write, this);
 }
 
-void CopyThread::_read()
+void CopyInThreads::_read()
 {
-    std::ifstream read_file(_source_path);
+    std::ifstream read_file(_source_path, std::ios::binary);
 
     if (!read_file.is_open())
     {
@@ -58,7 +58,7 @@ void CopyThread::_read()
     }
 }
 
-void CopyThread::_write()
+void CopyInThreads::_write()
 {
     std::ofstream target_file(_target_path);
     //TODO: verify that ostream creates a file

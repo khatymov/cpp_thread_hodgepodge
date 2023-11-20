@@ -1,5 +1,5 @@
 /*! \file copy_thread.h
- * \brief CopyThread class interface.
+ * \brief CopyInThreads class interface.
  *
  * Class description.
  *
@@ -13,20 +13,20 @@
 
 #include "read_write_buffer.h"
 
-/*! \class CopyThread
- * \brief Some briefing
+/*! \class CopyInThreads
+ * \brief Read a file in one thread and copy that data in the second thread to target file
  */
-class CopyThread
+class CopyInThreads
 {
 public:
     //! \brief default constructor.
-    CopyThread(const std::string_view& source_path, const std::string_view& target_path);
+    CopyInThreads(const std::string_view& source_path, const std::string_view& target_path);
 
     //! \brief run coping a file in 2 threads
     void run();
 
     //! \brief default destructor.
-    ~CopyThread() = default;
+    ~CopyInThreads() = default;
 
 private:
 
