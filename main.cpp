@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <iostream>
 #include <span>
-
+#include <cassert>
 #include "copy_thread.h"
 
 namespace fs = std::filesystem;
@@ -43,6 +43,8 @@ int main(int argc, char* argv[])
     {
         std::cerr << e.what() << std::endl;
     }
+
+    assert(std::system("diff ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
 
     return EXIT_SUCCESS;
 }

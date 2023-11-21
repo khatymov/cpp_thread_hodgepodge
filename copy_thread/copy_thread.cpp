@@ -2,18 +2,24 @@
  * \brief CopyInThreads class implementation.
  */
 
-#include <cassert>
+#include <iostream>
 
 #include "copy_thread.h"
 
 std::mutex buffer_mutex;
 std::condition_variable buffer_condition_var;
-std::atomic_bool is_file_closed{false};
+
+//https://www.cppstories.com/2023/five-adv-init-techniques-cpp/
+// constinit
+// make_unique_for_overwrite
+constinit size_t buffer_size{1};
 
 CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::string_view& target_path)
     : _source_path(source_path.data())
     , _target_path(target_path.data())
-    , _rw_buf(new ReadWriteBuffer<std::string>())
+//    , _rw_buf(new ReadWriteBuffer<std::string>())
+    , _read_buffer(std::make_unique_for_overwrite<char[]>(buffer_size))
+    , _write_buffer(std::make_unique_for_overwrite<char[]>(buffer_size))
 {}
 
 void CopyInThreads::run()
@@ -47,7 +53,7 @@ void CopyInThreads::run()
     }
 }
 
-void CopyInThreads::_read(std::exception_ptr& promise)
+void CopyInThreads::_read(std::exception_ptr& err)
 {
     try
     {
@@ -61,12 +67,14 @@ void CopyInThreads::_read(std::exception_ptr& promise)
             throw std::invalid_argument(error);
         }
 
+        read_file.unsetf(std::ios::skipws);
         // Read the file content line by line
-        std::string line;
 
-        while (std::getline(read_file, line))
+        while (read_file.read((char*)_read_buffer.get(), sizeof(char) * buffer_size))
         {
-            _rw_buf->read(line);
+            std::unique_lock<std::mutex> lock(buffer_mutex);
+            _read_buffer.swap(_write_buffer);
+            buffer_condition_var.notify_all();
         }
 
         // Verify that we reached the end of the file and close it
@@ -78,15 +86,9 @@ void CopyInThreads::_read(std::exception_ptr& promise)
         }
 
         read_file.close();
-
-        if (!read_file.is_open())
-        {
-            is_file_closed = true;
-            buffer_condition_var.notify_one();
-        }
     } catch ( ... )
     {
-        promise = std::current_exception();
+        err = std::current_exception();
     }
 }
 
@@ -102,9 +104,12 @@ void CopyInThreads::_write(std::exception_ptr& err)
             throw std::invalid_argument(error);
         }
 
-        while (_rw_buf->have_write_lines())
+        while (true)
         {
-            target_file << _rw_buf->get_line() << '\n';
+            std::unique_lock<std::mutex> lock(buffer_mutex);
+            buffer_condition_var.wait(lock);
+            std::cout << _write_buffer.get();
+            target_file << _write_buffer.get();
         }
 
         target_file.close();
@@ -113,5 +118,5 @@ void CopyInThreads::_write(std::exception_ptr& err)
         err = std::current_exception();
     }
 
-//    assert(std::system("diff ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
+
 }

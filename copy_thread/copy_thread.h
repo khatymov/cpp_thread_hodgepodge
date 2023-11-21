@@ -12,8 +12,6 @@
 #include <string>
 #include <thread>
 
-#include "read_write_buffer.h"
-
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
  */
@@ -37,16 +35,13 @@ private:
     std::string _target_path;
 
     //! \brief smart pointer which points on a safe thread buffer
-    std::shared_ptr<ReadWriteBuffer<std::string>> _rw_buf;
 
-    //! \brief a thread in which the source file is read into a buffer
-    // TODO LEARN BEFORE ALEX WILL ASK YOU!!! terminate
-//    std::thread read_thread;
-    //! \brief a thread in which the target file is written from a buffer
-//    std::thread write_thread;
+//    char* buffer = std::make_unique_for_overwrite<T[]>(num);
+    std::unique_ptr<char[]> _read_buffer;
+    std::unique_ptr<char[]> _write_buffer;
 
     //! \brief used by read_thread to read from source file
-    void _read(std::exception_ptr& promise);
+    void _read(std::exception_ptr& err);
 
     //! \brief used by write_thread to write to target file
     void _write(std::exception_ptr& err);
