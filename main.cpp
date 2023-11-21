@@ -18,10 +18,11 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    // TODO LEARN BEFORE ALEX WILL ASK YOU!!!
     // https://en.cppreference.com/w/cpp/container/span
     // warning: 'do not use pointer arithmetic'
     auto args = std::span(argv, size_t(argc));
-
+    // TODO LEARN BEFORE ALEX WILL ASK YOU!!!
     const std::string_view source_path{args[1]};
     const std::string_view target_path{args[2]};
 

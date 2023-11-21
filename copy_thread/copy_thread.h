@@ -7,6 +7,7 @@
 #pragma once
 
 #include <fstream>
+#include <future>
 #include <memory>
 #include <string>
 #include <thread>
@@ -39,12 +40,14 @@ private:
     std::shared_ptr<ReadWriteBuffer<std::string>> _rw_buf;
 
     //! \brief a thread in which the source file is read into a buffer
-    std::jthread _read_thread;
+    // TODO LEARN BEFORE ALEX WILL ASK YOU!!! terminate
+//    std::thread read_thread;
     //! \brief a thread in which the target file is written from a buffer
-    std::jthread _write_thread;
+//    std::thread write_thread;
 
-    //! \brief used by _read_thread to read from source file
-    void _read();
-    //! \brief used by _write_thread to write to target file
-    void _write();
+    //! \brief used by read_thread to read from source file
+    void _read(std::exception_ptr& promise);
+
+    //! \brief used by write_thread to write to target file
+    void _write(std::exception_ptr& err);
 };
