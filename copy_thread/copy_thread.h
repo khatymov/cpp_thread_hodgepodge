@@ -12,6 +12,11 @@
 #include <string>
 #include <thread>
 
+
+
+
+
+
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
  */
@@ -37,12 +42,14 @@ private:
     //! \brief smart pointer which points on a safe thread buffer
 
 //    char* buffer = std::make_unique_for_overwrite<T[]>(num);
+    // TODO: Why ptr char, not vector?
+    // TODO: make separate buffer class
     std::unique_ptr<char[]> _read_buffer;
     std::unique_ptr<char[]> _write_buffer;
 
     //! \brief used by read_thread to read from source file
     void _read(std::exception_ptr& err);
 
-    //! \brief used by write_thread to write to target file
-    void _write(std::exception_ptr& err);
+    //! \brief used by main_thread to write to target file
+    void _write();
 };

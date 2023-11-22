@@ -7,7 +7,7 @@
 #include "copy_thread.h"
 
 std::mutex buffer_mutex;
-std::condition_variable buffer_condition_var;
+std::condition_variable buffer_cond_var;
 
 //https://www.cppstories.com/2023/five-adv-init-techniques-cpp/
 // constinit
@@ -17,39 +17,27 @@ constinit size_t buffer_size{1};
 CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::string_view& target_path)
     : _source_path(source_path.data())
     , _target_path(target_path.data())
-//    , _rw_buf(new ReadWriteBuffer<std::string>())
     , _read_buffer(std::make_unique_for_overwrite<char[]>(buffer_size))
     , _write_buffer(std::make_unique_for_overwrite<char[]>(buffer_size))
 {}
 
 void CopyInThreads::run()
 {
+
     // exception pointer for read thread
     std::exception_ptr error_read;
-    // exception pointer for write thread
-    std::exception_ptr error_write;
 
-    // Launch read thread
+    //TODO: c++ hardware_destructive_interference_size,
+    //Launch read thread
     std::thread read_thread(&CopyInThreads::_read, this, std::ref(error_read));
-    // Launch write thread
-    std::thread write_thread(&CopyInThreads::_write, this, std::ref(error_write));
-
+    _write();
     read_thread.join();
-    write_thread.join();
 
     // See if read/write thread has thrown any exception
-    if (error_read or error_write)
+    if (error_read)
     {
         std::cout << "Main thread received exception, rethrowing it..." << std::endl;
-        if (error_read)
-        {
-            rethrow_exception(error_read);
-        }
-
-        if (error_write)
-        {
-            rethrow_exception(error_write);
-        }
+        rethrow_exception(error_read);
     }
 }
 
@@ -67,15 +55,21 @@ void CopyInThreads::_read(std::exception_ptr& err)
             throw std::invalid_argument(error);
         }
 
+        //disables skipping of leading whitespace
         read_file.unsetf(std::ios::skipws);
         // Read the file content line by line
-
-        while (read_file.read((char*)_read_buffer.get(), sizeof(char) * buffer_size))
+        while (read_file)
         {
-            std::unique_lock<std::mutex> lock(buffer_mutex);
-            _read_buffer.swap(_write_buffer);
-            buffer_condition_var.notify_all();
+            //lock
+            // сколько байт в буффере валидных
+
+            read_file.read((char*)_read_buffer.get(), sizeof(char) * buffer_size);
+            for (size_t i = 0; i < buffer_size; i++)
+            {
+                _write_buffer[i] = _read_buffer[i];
+            }
         }
+
 
         // Verify that we reached the end of the file and close it
         if (!read_file.eof())
@@ -92,7 +86,7 @@ void CopyInThreads::_read(std::exception_ptr& err)
     }
 }
 
-void CopyInThreads::_write(std::exception_ptr& err)
+void CopyInThreads::_write()
 {
     try
     {
@@ -106,17 +100,20 @@ void CopyInThreads::_write(std::exception_ptr& err)
 
         while (true)
         {
-            std::unique_lock<std::mutex> lock(buffer_mutex);
-            buffer_condition_var.wait(lock);
-            std::cout << _write_buffer.get();
-            target_file << _write_buffer.get();
+            // lock
+
+            target_file << _write_buffer;
+
+            if (is_finished)
+            {
+                //buff written
+                break;
+            }
         }
 
         target_file.close();
     } catch ( ... )
-    {
-        err = std::current_exception();
-    }
+    {}
 
 
 }
