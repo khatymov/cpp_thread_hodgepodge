@@ -39,8 +39,8 @@ private:
     DataQueue<char> _queue2;
 
     //! \brief used by read_thread to read from source file
-    void _read(std::atomic_bool& is_file_over, std::exception_ptr& err);
+    void _read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err);
 
     //! \brief used by main_thread to write to target file
-    void _write(std::atomic_bool& is_file_over);
+    void _write(std::atomic_bool& is_file_over, std::atomic_bool& is_second_buffer_over);
 };

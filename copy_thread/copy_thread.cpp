@@ -22,13 +22,16 @@ void CopyInThreads::run()
 {
     // exception pointer for read thread
     std::exception_ptr error_read;
-    // move to class member
-    std::atomic_bool is_file_over = false;
+    // TODO: move to class member?
+    //Use these vars as flags that we can't read anymore from source file, which means that we finished
+    std::atomic_bool is_first_buffer_over = false;
+    std::atomic_bool is_second_buffer_over = false;
 
     //TODO: c++ hardware_destructive_interference_size,
     //Launch read thread
-    std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_file_over), std::ref(error_read));
-    _write(std::ref(is_file_over));
+    std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_first_buffer_over), std::ref(is_second_buffer_over), std::ref(error_read));
+    // We write to a target file via main thread
+    _write(std::ref(is_first_buffer_over), std::ref(is_second_buffer_over));
 
     read_thread.join();
 
@@ -40,14 +43,15 @@ void CopyInThreads::run()
     }
 }
 
-void CopyInThreads::_read(std::atomic_bool& is_file_over, std::exception_ptr& err)
+void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err)
 {
     try
     {
+        std::cout << "Read thread start" << std::endl;
         //The abbreviation  "rb"  includes the representation of binary mode, as denoted by  b  code.
-        std::FILE* f = std::fopen(_source_path.c_str(), "rb");
+        std::FILE* read_file = std::fopen(_source_path.c_str(), "rb");
 
-        if (f == nullptr){
+        if (read_file == nullptr){
             const std::string error = "Unable to open read file " + _source_path;
             throw std::runtime_error(error);
         }
@@ -55,42 +59,36 @@ void CopyInThreads::_read(std::atomic_bool& is_file_over, std::exception_ptr& er
         std::vector<char> buf(buffer_size);
         while (true)
         {
-            if (std::fread(&buf[0], sizeof buf[0], buf.size(), f) == 1)
+            if (std::fread(&buf[0], sizeof buf[0], buf.size(), read_file) == 1)
             {
                 _queue1.set(buf);
             }
             else
             {
+                is_first_buffer_over = true;
                 break;
             }
 
-            if (std::fread(&buf[0], sizeof buf[0], buf.size(), f) == 1)
+            if (std::fread(&buf[0], sizeof buf[0], buf.size(), read_file) == 1)
             {
                 _queue2.set(buf);
             }
             else
             {
+                is_second_buffer_over = true;
                 break;
             }
         }
-        is_file_over = true;
-//        auto ptr = std::make_shared<std::vector<char>>('a');
-//        _queue1._data_queue.push(ptr);
 
-        std::cout << "read_thread is finished" << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//
-//        std::cout << "queue_size = " << _queue1._data_queue.size() << std::endl;
-//        std::cout << "set index = " << _queue1.i_set << std::endl;
-        _queue1._condition_var.notify_all();
-        fclose(f);
+        std::cout << "Read thread is finished" << std::endl;
+        fclose(read_file);
     } catch ( const std::exception& e )
     {
         err = std::current_exception();
     }
 }
 
-void CopyInThreads::_write(std::atomic_bool& is_file_over)
+void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over)
 {
     try
     {
@@ -101,15 +99,28 @@ void CopyInThreads::_write(std::atomic_bool& is_file_over)
             throw std::runtime_error(error);
         }
 
-        while (!is_file_over or !_queue1.is_empty or !_queue2.is_empty)
+        while (true)
         {
 
-            auto res1 = _queue1.get();
-            fwrite(&res1[0], sizeof res1[0] , res1.size(), f);
+            if (!is_first_buffer_over)
+            {
+                auto res1 = _queue1.get();
+                fwrite(&res1[0], sizeof res1[0] , res1.size(), f);
+            } else
+            {
+                break;
+            }
 
-            auto res2 = _queue2.get();
-            fwrite(&res2[0], sizeof res2[0], res2.size(), f);
+            if (!is_second_buffer_over)
+            {
+                auto res2 = _queue2.get();
+                fwrite(&res2[0], sizeof res2[0], res2.size(), f);
+            } else
+            {
+                break;
+            }
         }
+
         std::cout << "Write thread finished" << std::endl;
         fclose(f);
     } catch ( const std::exception& e )
