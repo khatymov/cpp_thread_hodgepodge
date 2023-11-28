@@ -53,13 +53,25 @@ void CopyInThreads::_read(std::atomic_bool& is_file_over, std::exception_ptr& er
         }
 
         std::vector<char> buf(buffer_size);
-        while (std::fread(&buf[0], sizeof buf[0], buf.size(), f) == 1)
+        while (true)
         {
-            _queue1.set(buf);
-//            if (std::fread(&buf[0], sizeof buf[0], buf.size(), f) == 1)
-//            {
-//                _queue2.set(buf);
-//            }
+            if (std::fread(&buf[0], sizeof buf[0], buf.size(), f) == 1)
+            {
+                _queue1.set(buf);
+            }
+            else
+            {
+                break;
+            }
+
+            if (std::fread(&buf[0], sizeof buf[0], buf.size(), f) == 1)
+            {
+                _queue2.set(buf);
+            }
+            else
+            {
+                break;
+            }
         }
         is_file_over = true;
 //        auto ptr = std::make_shared<std::vector<char>>('a');
@@ -70,25 +82,12 @@ void CopyInThreads::_read(std::atomic_bool& is_file_over, std::exception_ptr& er
 //
 //        std::cout << "queue_size = " << _queue1._data_queue.size() << std::endl;
 //        std::cout << "set index = " << _queue1.i_set << std::endl;
-//        _queue1._condition_var.notify_all();
-        // Verify that we reached the end of the file and close it
-//        if (!read_file.eof())
-        {
-            // We did not reach the end-of-file.
-//            const std::string error = "Unable to finish reading file " + _source_path;
-//            throw std::runtime_error(error);
-        }
+        _queue1._condition_var.notify_all();
         fclose(f);
     } catch ( const std::exception& e )
     {
         err = std::current_exception();
     }
-}
-
-void print(const std::vector<char>& v)
-{
-    for (const auto& it: v)
-        std::cout << it;
 }
 
 void CopyInThreads::_write(std::atomic_bool& is_file_over)
@@ -102,22 +101,14 @@ void CopyInThreads::_write(std::atomic_bool& is_file_over)
             throw std::runtime_error(error);
         }
 
-        while (!is_file_over or !_queue1.is_empty)
+        while (!is_file_over or !_queue1.is_empty or !_queue2.is_empty)
         {
-//            if (_queue1.is_empty)
-//                continue;
+
             auto res1 = _queue1.get();
             fwrite(&res1[0], sizeof res1[0] , res1.size(), f);
-            std::cout << res1[0];
 
-//            if (_queue2.is_empty)
-//                continue;
-//            {
-//                auto res2 = _queue2.get();
-//                fwrite(&res2[0], sizeof res2[0], res2.size(), f);
-//                std::cout << res2[0];
-//            }
-//            print(res1);
+            auto res2 = _queue2.get();
+            fwrite(&res2[0], sizeof res2[0], res2.size(), f);
         }
         std::cout << "Write thread finished" << std::endl;
         fclose(f);
