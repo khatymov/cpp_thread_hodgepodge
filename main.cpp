@@ -44,7 +44,8 @@ int main(int argc, char* argv[])
         std::cerr << e.what() << std::endl;
     }
 
-    assert(std::system("diff ../data/source.txt ../data/target.txt | exit $(wc -l)") == 0);
+    auto cmd = std::string("diff ") + source_path.data() + " " + target_path.data() + std::string("| exit $(wc -l)");
+    assert(std::system(cmd.c_str()) == 0);
 
     return EXIT_SUCCESS;
 }

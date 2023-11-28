@@ -6,16 +6,10 @@
  */
 #pragma once
 
-#include <fstream>
-#include <future>
-#include <memory>
 #include <string>
 #include <thread>
 
-
-
-
-
+#include "queue.h"
 
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
@@ -26,7 +20,7 @@ public:
     //! \brief default constructor.
     CopyInThreads(const std::string_view& source_path, const std::string_view& target_path);
 
-    //! \brief run coping a file in 2 threads
+    //! \brief run coping a file in 2 threads (main and child)
     void run();
 
     //! \brief default destructor.
@@ -39,17 +33,14 @@ private:
     //! \brief target file path
     std::string _target_path;
 
-    //! \brief smart pointer which points on a safe thread buffer
-
-//    char* buffer = std::make_unique_for_overwrite<T[]>(num);
-    // TODO: Why ptr char, not vector?
-    // TODO: make separate buffer class
-    std::unique_ptr<char[]> _read_buffer;
-    std::unique_ptr<char[]> _write_buffer;
+    // Add description
+    DataQueue<char> _queue1;
+    // Add description
+    DataQueue<char> _queue2;
 
     //! \brief used by read_thread to read from source file
-    void _read(std::exception_ptr& err);
+    void _read(std::atomic_bool& is_file_over, std::exception_ptr& err);
 
     //! \brief used by main_thread to write to target file
-    void _write();
+    void _write(std::atomic_bool& is_file_over);
 };
