@@ -11,6 +11,7 @@
 
 #include "queue.h"
 
+
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
  */

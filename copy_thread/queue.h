@@ -24,10 +24,7 @@ public:
     {
         {
             std::unique_lock<std::mutex> unique_lock(_mutex);
-            while (!_data_queue.empty())
-            {
-                _condition_var.wait(unique_lock);
-            }
+            _condition_var.wait(unique_lock, [this]{ return _data_queue.empty(); });
             _data->assign(data.begin(), data.end());
             _data_queue.push(_data);
 
@@ -40,10 +37,7 @@ public:
         {
             std::unique_lock<std::mutex> unique_lock(_mutex);
 
-            while (_data_queue.empty())
-            {
-                _condition_var.wait(unique_lock);
-            }
+            _condition_var.wait(unique_lock, [this] { return !_data_queue.empty(); });
             _output_data = *_data_queue.front().get();
             _data_queue.pop();
         }

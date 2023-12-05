@@ -6,6 +6,8 @@
 
 #include "copy_thread.h"
 
+#include "timer.h"
+
 //https://www.cppstories.com/2023/five-adv-init-techniques-cpp/
 // constinit
 // make_unique_for_overwrite
@@ -29,12 +31,12 @@ void CopyInThreads::run()
 
     //TODO: c++ hardware_destructive_interference_size,
     //Launch read thread
+    Timer timer;
     std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_first_buffer_over), std::ref(is_second_buffer_over), std::ref(error_read));
     // We write to a target file via main thread
     _write(std::ref(is_first_buffer_over), std::ref(is_second_buffer_over));
 
     read_thread.join();
-
     // See if read/write thread has thrown any exception
     if (error_read)
     {
@@ -93,19 +95,18 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
     try
     {
         std::cout << "Write thread start" << std::endl;
-        std::FILE* f = std::fopen(_target_path.c_str(), "w");
-        if (f == nullptr){
+        std::FILE* write_file = std::fopen(_target_path.c_str(), "w");
+        if (write_file == nullptr){
             const std::string error = "Unable to write to a file " + _target_path;
             throw std::runtime_error(error);
         }
 
         while (true)
         {
-
             if (!is_first_buffer_over)
             {
                 auto res1 = _queue1.get();
-                fwrite(&res1[0], sizeof res1[0] , res1.size(), f);
+                fwrite(&res1[0], sizeof res1[0] , res1.size(), write_file);
             } else
             {
                 break;
@@ -114,7 +115,7 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
             if (!is_second_buffer_over)
             {
                 auto res2 = _queue2.get();
-                fwrite(&res2[0], sizeof res2[0], res2.size(), f);
+                fwrite(&res2[0], sizeof res2[0], res2.size(), write_file);
             } else
             {
                 break;
@@ -122,7 +123,7 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
         }
 
         std::cout << "Write thread finished" << std::endl;
-        fclose(f);
+        fclose(write_file);
     } catch ( const std::exception& e )
     {
         std::cerr << e.what() << std::endl;
