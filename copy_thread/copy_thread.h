@@ -11,6 +11,10 @@
 
 #include "queue.h"
 
+//https://www.cppstories.com/2023/five-adv-init-techniques-cpp/
+// constinit
+// make_unique_for_overwrite
+const size_t buffer_size{1};
 
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
@@ -35,9 +39,9 @@ private:
     std::string _target_path;
 
     // Add description
-    DataQueue<char> _queue1;
+    DataQueue<char> _queue1 = DataQueue<>(buffer_size);
     // Add description
-    DataQueue<char> _queue2;
+    DataQueue<char> _queue2 = DataQueue<>(buffer_size);
 
     //! \brief used by read_thread to read from source file
     void _read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err);

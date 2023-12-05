@@ -8,17 +8,13 @@
 
 #include "timer.h"
 
-//https://www.cppstories.com/2023/five-adv-init-techniques-cpp/
-// constinit
-// make_unique_for_overwrite
-constinit size_t buffer_size{1};
+
 
 CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::string_view& target_path)
     :_source_path(source_path.data())
     ,_target_path(target_path.data())
-    ,_queue1(buffer_size)
-    ,_queue2(buffer_size)
-{}
+{
+}
 
 void CopyInThreads::run()
 {

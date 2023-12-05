@@ -11,7 +11,7 @@
 #include <vector>
 #include <queue>
 
-template<typename T>
+template<typename T = char>
 class DataQueue
 {
 public:
