@@ -1,9 +1,8 @@
-//
-// Created by Khatymov on 11/23/2023.
-//
+/*! \file queue.h
+* \brief Thread safe queue handler that's implement producer consumer technique.
+*/
 
-#ifndef TEST_PTR_BUFFER_H
-#define TEST_PTR_BUFFER_H
+#pragma once
 
 #include <mutex>
 #include <condition_variable>
@@ -19,7 +18,7 @@ public:
         : _data(std::make_shared<std::vector<T>>(buffer_size))
         , _output_data(buffer_size)
     {};
-
+    //! \brief assign buffer and put it into queue
     void set(const std::vector<T>& data, size_t bytes_read)
     {
         {
@@ -30,7 +29,7 @@ public:
         }
         _condition_var.notify_all();
     }
-
+    //! \brief pop buffer from a queue and return it
     std::vector<T> get()
     {
         {
@@ -42,21 +41,19 @@ public:
         _condition_var.notify_all();
         return _output_data;
     }
-
+    //! \brief check that queue is empty
     bool is_empty()
     {
         std::lock_guard<std::mutex> lock_guard(_mutex);
         return _data_queue.empty();
     }
+
 private:
     std::mutex _mutex;
     std::condition_variable _condition_var;
     std::queue<std::shared_ptr<std::vector<T>>> _data_queue;
     std::shared_ptr<std::vector<T>> _data;
-    // тк мы можем перезаписать данные когда делаем return _output_data;
-    // в методе set - для подстраховки используем второй вектор
+    //! \brief  since we can overwrite the data when we do return _output_data;
+    //! in the set method - for safety we use the second vector
     std::vector<T> _output_data;
 };
-
-
-#endif //TEST_PTR_BUFFER_H
