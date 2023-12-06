@@ -47,7 +47,6 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
 {
     try
     {
-        std::cout << "Read thread start" << std::endl;
         //The abbreviation  "rb"  includes the representation of binary mode, as denoted by  b  code.
         std::FILE* read_file = std::fopen(_source_path.c_str(), "rb");
 
@@ -57,6 +56,7 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
         }
 
         std::vector<char> buf(buffer_size);
+
         // Read data in chunks
         size_t read_bytes_1{0};
         size_t read_bytes_2{0};
@@ -69,7 +69,6 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
             }
             else
             {
-//                std::cout << "READ read_bytes_1 = " << read_bytes_1 << std::endl;
                 is_first_buffer_over = true;
                 break;
             }
@@ -81,13 +80,11 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
             }
             else
             {
-//                std::cout << "READ read_bytes_2 = " << read_bytes_2 << std::endl;
                 is_second_buffer_over = true;
                 break;
             }
         }
 
-        std::cout << "Read thread is finished" << std::endl;
         fclose(read_file);
     } catch ( const std::exception& e )
     {
@@ -99,7 +96,6 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
 {
     try
     {
-        std::cout << "Write thread start" << std::endl;
         std::FILE* write_file = std::fopen(_target_path.c_str(), "w");
         if (write_file == nullptr){
             const std::string error = "Unable to write to a file " + _target_path;
@@ -110,30 +106,25 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
         std::vector<char> result_buffer(buffer_size);
         while (true)
         {
-            if (!is_first_buffer_over)
+            if (!is_first_buffer_over or !_queue1.is_empty())
             {
                 result_buffer = _queue1.get();
                 fwrite(&result_buffer[0], sizeof result_buffer[0] , result_buffer.size(), write_file);
-//                read_bytes_1 = result_buffer.size();
             } else
             {
-                std::cout << "WRITE read_bytes_1 = " << result_buffer.size() << std::endl;
                 break;
             }
 
-            if (!is_second_buffer_over)
+            if (!is_second_buffer_over or !_queue2.is_empty())
             {
                 result_buffer = _queue2.get();
                 fwrite(&result_buffer[0], sizeof result_buffer[0], result_buffer.size(), write_file);
-//                read_bytes_2 = result_buffer.size();
             } else
             {
-                std::cout << "WRITE read_bytes_2 = " << result_buffer.size() << std::endl;
                 break;
             }
         }
 
-        std::cout << "Write thread finished" << std::endl;
         fclose(write_file);
     } catch ( const std::exception& e )
     {

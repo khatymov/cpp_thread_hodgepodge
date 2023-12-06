@@ -35,7 +35,6 @@ public:
     {
         {
             std::unique_lock<std::mutex> unique_lock(_mutex);
-
             _condition_var.wait(unique_lock, [this] { return !_data_queue.empty(); });
             _output_data = *_data_queue.front().get();
             _data_queue.pop();
@@ -44,6 +43,11 @@ public:
         return _output_data;
     }
 
+    bool is_empty()
+    {
+        std::lock_guard<std::mutex> lock_guard(_mutex);
+        return _data_queue.empty();
+    }
 private:
     std::mutex _mutex;
     std::condition_variable _condition_var;
