@@ -2,13 +2,11 @@
  * \brief Entry point.
  */
 
-#include <cstdlib>
+#include "copy_thread.h"
+#include <cassert>
 #include <filesystem>
 #include <iostream>
-#include <iterator>
-#include <tuple>
-
-#include "copy_thread.h"
+#include <span>
 
 namespace fs = std::filesystem;
 
@@ -20,24 +18,39 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    std::string_view source_path{argv[1]};
-    std::string_view target_path{argv[2]};
+    // https://en.cppreference.com/w/cpp/container/span
+    // warning: 'do not use pointer arithmetic'
+    const auto args = std::span(argv, size_t(argc));
+    const std::string_view source_path{args[1]};
+    const std::string_view target_path{args[2]};
 
     if (!fs::exists(source_path.data()))
     {
         std::cout << "Source file doesn't exist." << std::endl;
         return EXIT_FAILURE;
     }
+    // do not overwrite destination file by default.
+    if (source_path == target_path)
+    {
+        std::cout << "Source and target files are the same." << std::endl;
+        return EXIT_SUCCESS;
+    }
 
-    CopyThread copy_thread(source_path, target_path);
+    // initialize CopyInThreads class object
+    CopyInThreads copy_in_threads(source_path, target_path);
 
     try
     {
-        copy_thread.run();
-    } catch (const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
+        // execute copy in threads
+        copy_in_threads.run();
     }
+    catch (const std::exception& exception)
+    {
+        std::cerr << exception.what() << std::endl;
+    }
+
+    const auto cmd = std::string("diff ") + source_path.data() + " " + target_path.data() + std::string("| exit $(wc -l)");
+    assert(std::system(cmd.c_str()) == 0);
 
     return EXIT_SUCCESS;
 }

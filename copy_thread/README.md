@@ -1,7 +1,7 @@
-# CopyThread
+# CopyInThreads
 
 ---
 
-** Description. **
+** Copy files in 2 threads **
 
 ---
