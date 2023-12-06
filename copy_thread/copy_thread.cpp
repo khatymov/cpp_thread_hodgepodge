@@ -27,12 +27,14 @@ void CopyInThreads::run()
 
     //TODO: c++ hardware_destructive_interference_size,
     //Launch read thread
-    Timer timer;
-    std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_first_buffer_over), std::ref(is_second_buffer_over), std::ref(error_read));
-    // We write to a target file via main thread
-    _write(std::ref(is_first_buffer_over), std::ref(is_second_buffer_over));
+    {
+        Timer timer;
+        std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_first_buffer_over), std::ref(is_second_buffer_over), std::ref(error_read));
+        // We write to a target file via main thread
+        _write(std::ref(is_first_buffer_over), std::ref(is_second_buffer_over));
 
-    read_thread.join();
+        read_thread.join();
+    }
     // See if read/write thread has thrown any exception
     if (error_read)
     {
@@ -55,10 +57,16 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
         }
 
         std::vector<char> buf(buffer_size);
+        // Read data in chunks
+        size_t read_bytes_1{0};
+        size_t read_bytes_2{0};
         while (true)
         {
-            if (std::fread(&buf[0], sizeof buf[0], buf.size(), read_file) == 1)
+
+            if ( (read_bytes_1 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file)) > 0)
             {
+                if (read_bytes_1 < buf.size())
+                    buf.resize(read_bytes_1);
                 _queue1.set(buf);
             }
             else
@@ -67,8 +75,10 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
                 break;
             }
 
-            if (std::fread(&buf[0], sizeof buf[0], buf.size(), read_file) == 1)
+            if ( (read_bytes_2 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file)) > 0)
             {
+                if (read_bytes_2 < buf.size())
+                    buf.resize(read_bytes_2);
                 _queue2.set(buf);
             }
             else

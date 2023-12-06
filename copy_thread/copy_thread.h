@@ -14,7 +14,8 @@
 //https://www.cppstories.com/2023/five-adv-init-techniques-cpp/
 // constinit
 // make_unique_for_overwrite
-const size_t buffer_size{1};
+const size_t buffer_size{4096};
+//const size_t buffer_size{1024};
 
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file

@@ -26,6 +26,7 @@ public:
         std::cout << "Copy time: " << seconds.count() << "s " << milliseconds.count() << " ms\n";
     }
 private:
+    // time point initializes at the start of a creating Timer object
     const std::chrono::time_point<std::chrono::system_clock> start_time;
 };
 
