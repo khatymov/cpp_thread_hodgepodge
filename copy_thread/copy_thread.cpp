@@ -13,21 +13,19 @@
 CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::string_view& target_path)
     :_source_path(source_path.data())
     ,_target_path(target_path.data())
-{
-}
+{}
 
 void CopyInThreads::run()
 {
     // exception pointer for read thread
     std::exception_ptr error_read;
-    // TODO: move to class member?
-    //Use these vars as flags that we can't read anymore from source file, which means that we finished
+    //Use these vars as flags that we can't read anymore from source file, which means that we finished reading
     std::atomic_bool is_first_buffer_over = false;
     std::atomic_bool is_second_buffer_over = false;
 
-    //TODO: c++ hardware_destructive_interference_size,
     //Launch read thread
     {
+        // Calculate time using RAII
         Timer timer;
         std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_first_buffer_over), std::ref(is_second_buffer_over), std::ref(error_read));
         // We write to a target file via main thread
@@ -45,6 +43,7 @@ void CopyInThreads::run()
 
 void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err)
 {
+    //TODO name the thread for debugging simplification
     try
     {
         //The abbreviation  "rb"  includes the representation of binary mode, as denoted by  b  code.
@@ -106,6 +105,9 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
         std::vector<char> result_buffer(buffer_size);
         while (true)
         {
+            // Added !_queue1.is_empty() because of the following situation:
+            // read thread is filled the buffer in queue and set is_first_buffer_over=true
+            // and we have something in buffer, BUT! since is_first_buffer_over=true we just skip writing
             if (!is_first_buffer_over or !_queue1.is_empty())
             {
                 result_buffer = _queue1.get();
@@ -126,8 +128,8 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
         }
 
         fclose(write_file);
-    } catch ( const std::exception& e )
+    } catch (const std::exception& exception)
     {
-        std::cerr << e.what() << std::endl;
+        std::cerr << exception.what() << std::endl;
     }
 }
