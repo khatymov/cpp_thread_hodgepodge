@@ -2,11 +2,11 @@
  * \brief Entry point.
  */
 
+#include "copy_thread.h"
+#include <cassert>
 #include <filesystem>
 #include <iostream>
 #include <span>
-#include <cassert>
-#include "copy_thread.h"
 
 namespace fs = std::filesystem;
 
@@ -41,9 +41,10 @@ int main(int argc, char* argv[])
 
     try
     {
-        //execute copy in threads
+        // execute copy in threads
         copy_in_threads.run();
-    } catch (const std::exception& exception)
+    }
+    catch (const std::exception& exception)
     {
         std::cerr << exception.what() << std::endl;
     }

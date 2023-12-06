@@ -1,5 +1,5 @@
 /*! \file timer.h
-* \brief Calculate time consumption using RAII
+ * \brief Calculate time consumption using RAII
  */
 
 #pragma once
@@ -10,9 +10,9 @@
 class Timer
 {
 public:
-    Timer()
-        :start_time(std::chrono::system_clock::now())
-    {}
+    Timer() : start_time(std::chrono::system_clock::now())
+    {
+    }
 
     Timer(const Timer&) = delete;
 
@@ -26,6 +26,7 @@ public:
         // Print the results
         std::cout << "Copy time: " << seconds.count() << "s " << milliseconds.count() << " ms\n";
     }
+
 private:
     //! \brief time point initializes at the start of a creating Timer object
     const std::chrono::time_point<std::chrono::system_clock> start_time;

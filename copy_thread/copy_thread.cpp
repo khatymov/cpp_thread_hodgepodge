@@ -8,22 +8,20 @@
 
 #include "timer.h"
 
-
-
 CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::string_view& target_path)
-    :_source_path(source_path.data())
-    ,_target_path(target_path.data())
-{}
+    : _source_path(source_path.data()), _target_path(target_path.data())
+{
+}
 
 void CopyInThreads::run()
 {
     // exception pointer for read thread
     std::exception_ptr error_read;
-    //Use these vars as flags that we can't read anymore from source file, which means that we finished reading
+    // Use these vars as flags that we can't read anymore from source file, which means that we finished reading
     std::atomic_bool is_first_buffer_over = false;
     std::atomic_bool is_second_buffer_over = false;
 
-    //Launch read thread
+    // Launch read thread
     {
         // Calculate time using RAII
         Timer timer;
@@ -48,10 +46,11 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
 
     try
     {
-        //The abbreviation  "rb"  includes the representation of binary mode, as denoted by  b  code.
+        // The abbreviation  "rb"  includes the representation of binary mode, as denoted by  b  code.
         std::FILE* read_file = std::fopen(_source_path.c_str(), "rb");
 
-        if (read_file == nullptr){
+        if (read_file == nullptr)
+        {
             const std::string error = "Unable to open read file " + _source_path;
             throw std::runtime_error(error);
         }
@@ -88,7 +87,8 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
         }
 
         fclose(read_file);
-    } catch ( const std::exception& e )
+    }
+    catch (const std::exception& e)
     {
         err = std::current_exception();
     }
@@ -99,12 +99,13 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
     try
     {
         std::FILE* write_file = std::fopen(_target_path.c_str(), "w");
-        if (write_file == nullptr){
+        if (write_file == nullptr)
+        {
             const std::string error = "Unable to write to a file " + _target_path;
             throw std::runtime_error(error);
         }
 
-        //Create once to assign vector from queue
+        // Create once to assign vector from queue
         std::vector<char> result_vector(buffer_size);
         while (true)
         {
@@ -114,8 +115,9 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
             if (!is_first_buffer_over or !_queue1.is_empty())
             {
                 result_vector = _queue1.get();
-                fwrite(&result_vector[0], sizeof result_vector[0] , result_vector.size(), write_file);
-            } else
+                fwrite(&result_vector[0], sizeof result_vector[0], result_vector.size(), write_file);
+            }
+            else
             {
                 break;
             }
@@ -124,14 +126,16 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
             {
                 result_vector = _queue2.get();
                 fwrite(&result_vector[0], sizeof result_vector[0], result_vector.size(), write_file);
-            } else
+            }
+            else
             {
                 break;
             }
         }
 
         fclose(write_file);
-    } catch (const std::exception& exception)
+    }
+    catch (const std::exception& exception)
     {
         std::cerr << exception.what() << std::endl;
     }

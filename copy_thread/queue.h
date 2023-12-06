@@ -1,29 +1,26 @@
 /*! \file queue.h
-* \brief Thread safe queue handler that's implement producer consumer technique.
-*/
+ * \brief Thread safe queue handler that's implement producer consumer technique.
+ */
 
 #pragma once
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
 #include <thread>
 #include <vector>
-#include <queue>
 
-template<typename T = char>
+template <typename T = char>
 class QueueHandler
 {
 public:
-    explicit QueueHandler(size_t buffer_size)
-        : _data(std::make_shared<std::vector<T>>(buffer_size))
-        , _output_data(buffer_size)
-    {};
+    explicit QueueHandler(size_t buffer_size) : _data(std::make_shared<std::vector<T>>(buffer_size)), _output_data(buffer_size){};
     //! \brief assign buffer and put it into queue
     void set(const std::vector<T>& data, size_t bytes_read)
     {
         {
             std::unique_lock<std::mutex> unique_lock(_mutex);
-            _condition_var.wait(unique_lock, [this]{ return _data_queue.empty(); });
+            _condition_var.wait(unique_lock, [this] { return _data_queue.empty(); });
             _data->assign(data.begin(), data.begin() + bytes_read);
             _data_queue.push(_data);
         }
