@@ -62,27 +62,26 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
         size_t read_bytes_2{0};
         while (true)
         {
-
-            if ( (read_bytes_1 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file)) > 0)
+            read_bytes_1 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file);
+            if (read_bytes_1 > 0)
             {
-                if (read_bytes_1 < buf.size())
-                    buf.resize(read_bytes_1);
-                _queue1.set(buf);
+                _queue1.set(buf, read_bytes_1);
             }
             else
             {
+//                std::cout << "READ read_bytes_1 = " << read_bytes_1 << std::endl;
                 is_first_buffer_over = true;
                 break;
             }
 
-            if ( (read_bytes_2 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file)) > 0)
+            read_bytes_2 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file);
+            if (read_bytes_2 > 0)
             {
-                if (read_bytes_2 < buf.size())
-                    buf.resize(read_bytes_2);
-                _queue2.set(buf);
+                _queue2.set(buf, read_bytes_2);
             }
             else
             {
+//                std::cout << "READ read_bytes_2 = " << read_bytes_2 << std::endl;
                 is_second_buffer_over = true;
                 break;
             }
@@ -107,23 +106,29 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
             throw std::runtime_error(error);
         }
 
+        //Create once to assign vector from queue
+        std::vector<char> result_buffer(buffer_size);
         while (true)
         {
             if (!is_first_buffer_over)
             {
-                auto res1 = _queue1.get();
-                fwrite(&res1[0], sizeof res1[0] , res1.size(), write_file);
+                result_buffer = _queue1.get();
+                fwrite(&result_buffer[0], sizeof result_buffer[0] , result_buffer.size(), write_file);
+//                read_bytes_1 = result_buffer.size();
             } else
             {
+                std::cout << "WRITE read_bytes_1 = " << result_buffer.size() << std::endl;
                 break;
             }
 
             if (!is_second_buffer_over)
             {
-                auto res2 = _queue2.get();
-                fwrite(&res2[0], sizeof res2[0], res2.size(), write_file);
+                result_buffer = _queue2.get();
+                fwrite(&result_buffer[0], sizeof result_buffer[0], result_buffer.size(), write_file);
+//                read_bytes_2 = result_buffer.size();
             } else
             {
+                std::cout << "WRITE read_bytes_2 = " << result_buffer.size() << std::endl;
                 break;
             }
         }

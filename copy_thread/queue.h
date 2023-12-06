@@ -20,14 +20,13 @@ public:
         , _output_data(buffer_size)
     {};
 
-    void set(const std::vector<T>& data)
+    void set(const std::vector<T>& data, size_t bytes_read)
     {
         {
             std::unique_lock<std::mutex> unique_lock(_mutex);
             _condition_var.wait(unique_lock, [this]{ return _data_queue.empty(); });
-            _data->assign(data.begin(), data.end());
+            _data->assign(data.begin(), data.begin() + bytes_read);
             _data_queue.push(_data);
-
         }
         _condition_var.notify_all();
     }
