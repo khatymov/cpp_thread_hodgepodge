@@ -43,7 +43,9 @@ void CopyInThreads::run()
 
 void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err)
 {
-    //TODO name the thread for debugging simplification
+    // name the thread for debugging simplification
+    pthread_setname_np(pthread_self(), "Read thread");
+
     try
     {
         //The abbreviation  "rb"  includes the representation of binary mode, as denoted by  b  code.
@@ -54,17 +56,18 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
             throw std::runtime_error(error);
         }
 
-        std::vector<char> buf(buffer_size);
+        // vector where we put our bytes and send it to the QueueHandler
+        std::vector<char> byte_vector(buffer_size);
 
         // Read data in chunks
         size_t read_bytes_1{0};
         size_t read_bytes_2{0};
         while (true)
         {
-            read_bytes_1 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file);
+            read_bytes_1 = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
             if (read_bytes_1 > 0)
             {
-                _queue1.set(buf, read_bytes_1);
+                _queue1.set(byte_vector, read_bytes_1);
             }
             else
             {
@@ -72,10 +75,10 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
                 break;
             }
 
-            read_bytes_2 = std::fread(&buf[0], sizeof buf[0], buf.size(), read_file);
+            read_bytes_2 = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
             if (read_bytes_2 > 0)
             {
-                _queue2.set(buf, read_bytes_2);
+                _queue2.set(byte_vector, read_bytes_2);
             }
             else
             {
@@ -102,7 +105,7 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
         }
 
         //Create once to assign vector from queue
-        std::vector<char> result_buffer(buffer_size);
+        std::vector<char> result_vector(buffer_size);
         while (true)
         {
             // Added !_queue1.is_empty() because of the following situation:
@@ -110,8 +113,8 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
             // and we have something in buffer, BUT! since is_first_buffer_over=true we just skip writing
             if (!is_first_buffer_over or !_queue1.is_empty())
             {
-                result_buffer = _queue1.get();
-                fwrite(&result_buffer[0], sizeof result_buffer[0] , result_buffer.size(), write_file);
+                result_vector = _queue1.get();
+                fwrite(&result_vector[0], sizeof result_vector[0] , result_vector.size(), write_file);
             } else
             {
                 break;
@@ -119,8 +122,8 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
 
             if (!is_second_buffer_over or !_queue2.is_empty())
             {
-                result_buffer = _queue2.get();
-                fwrite(&result_buffer[0], sizeof result_buffer[0], result_buffer.size(), write_file);
+                result_vector = _queue2.get();
+                fwrite(&result_vector[0], sizeof result_vector[0], result_vector.size(), write_file);
             } else
             {
                 break;

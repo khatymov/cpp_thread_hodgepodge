@@ -11,10 +11,10 @@
 #include <queue>
 
 template<typename T = char>
-class DataQueue
+class QueueHandler
 {
 public:
-    explicit DataQueue(size_t buffer_size)
+    explicit QueueHandler(size_t buffer_size)
         : _data(std::make_shared<std::vector<T>>(buffer_size))
         , _output_data(buffer_size)
     {};
@@ -49,9 +49,13 @@ public:
     }
 
 private:
+    //! \brief thread synchronization primitives
     std::mutex _mutex;
     std::condition_variable _condition_var;
+
+    //! \brief queue of vector pointers.
     std::queue<std::shared_ptr<std::vector<T>>> _data_queue;
+    //! \brief pointer of vector
     std::shared_ptr<std::vector<T>> _data;
     //! \brief  since we can overwrite the data when we do return _output_data;
     //! in the set method - for safety we use the second vector

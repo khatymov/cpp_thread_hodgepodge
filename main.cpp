@@ -29,6 +29,12 @@ int main(int argc, char* argv[])
         std::cout << "Source file doesn't exist." << std::endl;
         return EXIT_FAILURE;
     }
+    // do not overwrite destination file by default.
+    if (source_path == target_path)
+    {
+        std::cout << "Source and target files are the same." << std::endl;
+        return EXIT_SUCCESS;
+    }
 
     // initialize CopyInThreads class object
     CopyInThreads copy_in_threads(source_path, target_path);

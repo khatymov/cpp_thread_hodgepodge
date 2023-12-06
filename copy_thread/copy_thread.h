@@ -40,9 +40,9 @@ private:
     std::string _target_path;
 
     // Add description
-    DataQueue<char> _queue1 = DataQueue<>(buffer_size);
+    QueueHandler<char> _queue1 = QueueHandler<>(buffer_size);
     // Add description
-    DataQueue<char> _queue2 = DataQueue<>(buffer_size);
+    QueueHandler<char> _queue2 = QueueHandler<>(buffer_size);
 
     //! \brief used by read_thread to read from source file
     void _read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err);
