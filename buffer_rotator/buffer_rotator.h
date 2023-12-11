@@ -8,9 +8,14 @@
 
 #pragma once
 
+#include <mutex>
+#include <queue>
+
+
 struct FileData
 {
-
+    char data[1024*256];
+    size_t size = 0;
 };
 
 /*! \class BufferRotator

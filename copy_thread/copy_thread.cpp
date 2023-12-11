@@ -15,23 +15,19 @@ CopyInThreads::CopyInThreads(const std::string_view& source_path, const std::str
 
 void CopyInThreads::run()
 {
-    // Use these vars as flags that we can't read anymore from source file, which means that we finished reading
-    std::atomic_bool is_first_buffer_over = false;
-    std::atomic_bool is_second_buffer_over = false;
-
     // Launch read thread
     {
         // Calculate time using RAII
         Timer timer;
-        std::thread read_thread(&CopyInThreads::_read, this, std::ref(is_first_buffer_over), std::ref(is_second_buffer_over));
+        std::thread read_thread(&CopyInThreads::_read, this);
         // We write to a target file via main thread
-        _write(std::ref(is_first_buffer_over), std::ref(is_second_buffer_over));
+        _write();
 
         read_thread.join();
     }
 }
 
-void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over)
+void CopyInThreads::_read()
 {
     // name the thread for debugging simplification
     pthread_setname_np(pthread_self(), "Read thread");
@@ -49,13 +45,13 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
     size_t read_bytes{0};
     while (true)
     {
-        read_bytes = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
+//        read_bytes = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
     }
 
     fclose(read_file);
 }
 
-void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over)
+void CopyInThreads::_write()
 {
     std::FILE* write_file = std::fopen(_target_path.c_str(), "w");
     if (write_file == nullptr)
