@@ -45,35 +45,11 @@ void CopyInThreads::_read(std::atomic_bool& is_first_buffer_over, std::atomic_bo
         throw std::runtime_error(error);
     }
 
-    // vector where we put our bytes and send it to the QueueHandler
-    std::vector<char> byte_vector(buffer_size);
-
     // Read data in chunks
-    size_t read_bytes_1{0};
-    size_t read_bytes_2{0};
+    size_t read_bytes{0};
     while (true)
     {
-        read_bytes_1 = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
-        if (read_bytes_1 > 0)
-        {
-            _queue1.set(byte_vector, read_bytes_1);
-        }
-        else
-        {
-            is_first_buffer_over = true;
-            break;
-        }
-
-        read_bytes_2 = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
-        if (read_bytes_2 > 0)
-        {
-            _queue2.set(byte_vector, read_bytes_2);
-        }
-        else
-        {
-            is_second_buffer_over = true;
-            break;
-        }
+        read_bytes = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
     }
 
     fclose(read_file);
@@ -88,32 +64,8 @@ void CopyInThreads::_write(std::atomic_bool& is_first_buffer_over, std::atomic_b
         throw std::runtime_error(error);
     }
 
-    // Create once to assign vector from queue
-    std::vector<char> result_vector(buffer_size);
     while (true)
     {
-        // Added !_queue1.is_empty() because of the following situation:
-        // read thread is filled the buffer in queue and set is_first_buffer_over=true
-        // and we have something in buffer, BUT! since is_first_buffer_over=true we just skip writing
-        if (!is_first_buffer_over or !_queue1.is_empty())
-        {
-            result_vector = _queue1.get();
-            fwrite(&result_vector[0], sizeof result_vector[0], result_vector.size(), write_file);
-        }
-        else
-        {
-            break;
-        }
-
-        if (!is_second_buffer_over or !_queue2.is_empty())
-        {
-            result_vector = _queue2.get();
-            fwrite(&result_vector[0], sizeof result_vector[0], result_vector.size(), write_file);
-        }
-        else
-        {
-            break;
-        }
     }
 
     fclose(write_file);

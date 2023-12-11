@@ -16,9 +16,11 @@ if [ -d "${build_dir}" ]; then
   rm -rf "${build_dir}" || exit $?
 fi
 
-mkdir -p "${build_dir}" || exit $?
+# Install dependencies
+conan install . --output-folder="${build_dir}" --build=missing || exit $?
+
 cd "${build_dir}" || exit $?
 
 # Build
-cmake .. -DCMAKE_BUILD_TYPE=Release || exit $?
+cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release || exit $?
 cmake --build . --config Release || exit $?
