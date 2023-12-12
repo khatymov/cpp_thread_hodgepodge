@@ -8,9 +8,9 @@
 
 #include <string>
 #include <thread>
+#include <memory>
 
-#include "queue.h"
-
+#include "buffer_rotator.h"
 
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
@@ -28,6 +28,8 @@ public:
     ~CopyInThreads() = default;
 
 private:
+    //! \brief buffer handler is shared between read and write thread
+    std::shared_ptr<BufferRotator> buffer_rotator;
     //! \brief source file path
     std::string _source_path;
     //! \brief target file path
