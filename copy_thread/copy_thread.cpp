@@ -46,15 +46,13 @@ void CopyInThreads::_read()
 //    read_bytes = std::fread(&byte_vector[0], sizeof byte_vector[0], byte_vector.size(), read_file);
     FileData* file_data = nullptr;
     size_t read_bytes{1};
-    int cntr = 0;
     //ATTENTION!!!!
     while (read_bytes)
     {
         file_data = buffer_rotator->get_available_buffer(BufferMode::read);
-        cntr++;
         file_data->size = std::fread(&file_data->data[0], sizeof file_data->data[0], buffer_size, read_file);
-        file_data->is_init = true;
-        buffer_rotator->transfer_buffer(file_data, BufferMode::read);
+        read_bytes = file_data->size;
+        buffer_rotator->transfer_buffer_to(file_data, BufferMode::write);
     }
 
     fclose(read_file);
@@ -71,14 +69,12 @@ void CopyInThreads::_write()
 
     FileData* file_data = nullptr;
     size_t write_bytes = 1;
-    int cntr = 0;
     while (write_bytes)
     {
         file_data = buffer_rotator->get_available_buffer(BufferMode::write);
-        cntr++;
-        if (file_data->is_init)
-            fwrite(&file_data[0], sizeof file_data[0], file_data->size, write_file);
-        buffer_rotator->transfer_buffer(file_data, BufferMode::write);
+        write_bytes = file_data->size;
+        fwrite(&file_data[0], sizeof file_data[0], file_data->size, write_file);
+        buffer_rotator->transfer_buffer_to(file_data, BufferMode::read);
     }
 
     fclose(write_file);

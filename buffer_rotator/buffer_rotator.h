@@ -20,7 +20,7 @@ struct FileData
 {
     char data[buffer_size];
     size_t size = 0;
-    std::atomic_bool is_init{false};
+//    std::atomic_bool is_init{false};
 };
 
 
@@ -50,7 +50,7 @@ public:
     FileData* get_available_buffer(const BufferMode mode);
 
     //! \brief give buffer to another thread (read or write)
-    void transfer_buffer(FileData* buffer_data, const BufferMode mode);
+    void transfer_buffer_to(FileData* buffer_data, const BufferMode mode);
 
 protected:
     std::queue<FileData*>* get_buffer_from_queue(const BufferMode mode);
