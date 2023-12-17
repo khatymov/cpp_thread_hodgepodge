@@ -13,7 +13,6 @@ BufferRotator::BufferRotator()
     _read_buffers.push(&_buffer_data[0]);
     _read_buffers.push(&_buffer_data[1]);
 }
-#include <iostream>
 
 FileData* BufferRotator::get_available_buffer(const BufferMode mode)
 {

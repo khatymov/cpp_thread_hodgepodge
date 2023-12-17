@@ -64,7 +64,6 @@ private:
     //! \brief thread synchronization primitives
     //! // to prevent from access to queue
     std::mutex _mutex;
-    std::condition_variable _condition_var;
 
     //! \brief queues with buffers
     std::queue<FileData*> _read_buffers;

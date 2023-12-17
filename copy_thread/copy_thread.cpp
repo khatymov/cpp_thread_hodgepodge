@@ -56,26 +56,26 @@ void CopyInThreads::_read()
         }
     } while (true);
 
-//    int i = 0;
-//
-//    for (; i < db.row_count(); ++i)
-//    {
-//        if (db.at(i))
-//        {
-//            ...
-//            ...
-//            // a lot of logic with db
-//            ...
-//            goto mark;
-//        }
-////        usual processing
-//    }
-//
-//    for (; i < db.row_count(); ++i)
-//    {
-//        :mark;
-//        //  usual processing
-//    }
+    //    int i = 0;
+    //
+    //    for (; i < db.row_count(); ++i)
+    //    {
+    //        if (db.at(i))
+    //        {
+    //            ...
+    //            ...
+    //            // a lot of logic with db
+    //            ...
+    //            goto mark;
+    //        }
+    ////        usual processing
+    //    }
+    //
+    //    for (; i < db.row_count(); ++i)
+    //    {
+    //        :mark;
+    //        //  usual processing
+    //    }
 
     fclose(read_file);
 }
