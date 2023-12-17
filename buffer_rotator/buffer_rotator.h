@@ -10,8 +10,10 @@
 
 #include <mutex>
 #include <queue>
+#include <condition_variable>
 
 const size_t buffer_size = 1024*256;
+
 
 /*! \class FileData
  * \brief Data that we read from a file and get the size how many bytes we read
@@ -20,10 +22,11 @@ struct FileData
 {
     char data[buffer_size];
     size_t size = 0;
-//    std::atomic_bool is_init{false};
 };
 
-
+/*! \class BufferMode
+ * \brief Choose current mode: write or read
+ */
 enum class BufferMode : int
 {
     read,
@@ -55,9 +58,15 @@ public:
 protected:
     std::queue<FileData*>* get_buffer_from_queue(const BufferMode mode);
 private:
+    //! \brief buffers with data
     FileData _buffer_data[2];
-    // to prevent from access to queue
-    std::mutex _guard;
+
+    //! \brief thread synchronization primitives
+    //! // to prevent from access to queue
+    std::mutex _mutex;
+    std::condition_variable _condition_var;
+
+    //! \brief queues with buffers
     std::queue<FileData*> _read_buffers;
     std::queue<FileData*> _write_buffers;
 };

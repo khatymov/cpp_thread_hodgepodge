@@ -29,7 +29,7 @@ public:
 
 private:
     //! \brief buffer handler is shared between read and write thread
-    std::shared_ptr<BufferRotator> buffer_rotator;
+    std::unique_ptr<BufferRotator> buffer_rotator;
     //! \brief source file path
     std::string _source_path;
     //! \brief target file path
