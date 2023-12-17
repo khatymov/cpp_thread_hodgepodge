@@ -8,12 +8,9 @@
 
 #include <string>
 #include <thread>
+#include <memory>
 
-#include "queue.h"
-
-
-const size_t buffer_size{4096};
-
+#include "buffer_rotator.h"
 
 /*! \class CopyInThreads
  * \brief Read a file in one thread and copy that data in the second thread to target file
@@ -31,19 +28,16 @@ public:
     ~CopyInThreads() = default;
 
 private:
+    //! \brief buffer handler is shared between read and write thread
+    std::unique_ptr<BufferRotator> buffer_rotator;
     //! \brief source file path
     std::string _source_path;
     //! \brief target file path
     std::string _target_path;
 
-    // Add description
-    QueueHandler<char> _queue1 = QueueHandler<>(buffer_size);
-    // Add description
-    QueueHandler<char> _queue2 = QueueHandler<>(buffer_size);
-
     //! \brief used by read_thread to read from source file
-    void _read(std::atomic_bool& is_first_buffer_over, std::atomic_bool& is_second_buffer_over, std::exception_ptr& err);
+    void _read();
 
     //! \brief used by main_thread to write to target file
-    void _write(std::atomic_bool& is_file_over, std::atomic_bool& is_second_buffer_over);
+    void _write();
 };

@@ -39,15 +39,7 @@ int main(int argc, char* argv[])
     // initialize CopyInThreads class object
     CopyInThreads copy_in_threads(source_path, target_path);
 
-    try
-    {
-        // execute copy in threads
-        copy_in_threads.run();
-    }
-    catch (const std::exception& exception)
-    {
-        std::cerr << exception.what() << std::endl;
-    }
+    copy_in_threads.run();
 
     const auto cmd = std::string("diff ") + source_path.data() + " " + target_path.data() + std::string("| exit $(wc -l)");
     assert(std::system(cmd.c_str()) == 0);
